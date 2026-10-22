@@ -1,0 +1,55 @@
+# Vive en clavis-backend/docker-compose.yml
+# Antes de levantar esto: docker network create clavis_net
+
+services:
+  db:
+    image: postgres:16
+    container_name: clavis_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - clavis_pgdata:/var/lib/postgresql/data
+      - ./clavis_tables.sql:/docker-entrypoint-initdb.d/01_schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - clavis_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: clavis_redis
+    restart: unless-stopped
+    networks:
+      - clavis_net
+
+  backend:
+    build: ./backend
+    container_name: clavis_backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    networks:
+      - clavis_net
+
+volumes:
+  clavis_pgdata:
+
+networks:
+  clavis_net:
+    external: true
