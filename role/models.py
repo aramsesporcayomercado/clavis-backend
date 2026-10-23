@@ -11,6 +11,11 @@ class Role(models.Model):
     Los roles ``familiar`` y ``admin`` son los que el código del sistema
     referencia (ver :class:`Name`). El modelo permite registrar roles
     adicionales a futuro.
+
+    ``is_active`` apaga un rol completo: los privilegios que el sistema
+    deriva de un rol inactivo dejan de aplicar (ver ``User.is_admin``).
+    ``updated_at`` deja constancia de cuándo se modificó un rol, porque un
+    cambio aquí afecta los privilegios de todos sus usuarios.
     """
 
     class Name(models.TextChoices):
@@ -23,6 +28,7 @@ class Role(models.Model):
     name = models.CharField(max_length=50, unique=True)
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self) -> str:
         return self.name
